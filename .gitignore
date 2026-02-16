@@ -176,9 +176,12 @@ pkg
 /moshi-demo/config.sh
 log.*
 laurent/cuda-test/check
-client/node_modules
+client/
 timings.json
 mlx-trace.json
+
+# Recordings
+recordings/
 
 # Include everything in assets
 !assets/

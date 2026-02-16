@@ -1,0 +1,80 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: personaplex
+  labels:
+    cloud.googleapis.com/location: us-east4
+  annotations:
+    run.googleapis.com/description: "PersonaPlex speech-to-speech model endpoint"
+    run.googleapis.com/ingress: all
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    metadata:
+      annotations:
+        # GPU: NVIDIA L4 (24GB VRAM) -- only GPU type available on Cloud Run
+        run.googleapis.com/gpu-type: nvidia-l4
+        # 0 = scale-to-zero (saves cost, but cold start is ~2-3 min for model download+load)
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "1"
+        # Startup can take up to 5 minutes (model download + load + warmup)
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      containerConcurrency: 1
+      timeoutSeconds: 3600
+      containers:
+        - image: IMAGE_PLACEHOLDER
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "8"
+              memory: 32Gi
+              nvidia.com/gpu: "1"
+          env:
+            - name: DEVICE
+              value: "cuda"
+            - name: HF_REPO
+              value: "nvidia/personaplex-7b-v1"
+            - name: NO_TORCH_COMPILE
+              value: "1"
+            - name: HF_HUB_ENABLE_HF_TRANSFER
+              value: "1"
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: latest
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: twilio-account-sid
+                  key: latest
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: twilio-auth-token
+                  key: latest
+            - name: TWILIO_PHONE_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: twilio-phone-number
+                  key: latest
+            - name: SERVER_URL
+              value: "SERVER_URL_PLACEHOLDER"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3

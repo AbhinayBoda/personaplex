@@ -1,1 +1,13 @@
+.git
+.github
 .cache
+.env
+.env.example
+*.md
+assets/
+deploy/
+recordings/
+client/
+__pycache__
+*.pyc
+*.pyo
